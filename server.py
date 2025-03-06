@@ -1,32 +1,46 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+import os
+import uvicorn
 import string
 
+# Crear la aplicación FastAPI
 app = FastAPI()
-ALFABETO = string.ascii_lowercase  # "abcdefghijklmnopqrstuvwxyz"
 
-class DescifradoRequest(BaseModel):
+# Definir los caracteres permitidos en el cifrado
+ALFABETO = string.ascii_lowercase + string.ascii_uppercase + string.digits  # Minúsculas, mayúsculas y números
+
+class CifradoRequest(BaseModel):
     texto_cifrado: str
     clave_descifrado: int
     direccion: str  # "derecha" o "izquierda"
 
 def algoritmo_descifrado(texto_cifrado: str, clave_descifrado: int, direccion: str) -> str:
     texto_plano = ""
-    
-    if direccion.lower() == "derecha":
-        clave_descifrado = -clave_descifrado  # Si es derecha, invierte el desplazamiento
 
-    for letra in texto_cifrado:
-        if letra not in ALFABETO:
-            texto_plano += letra
+    for caracter in texto_cifrado:
+        if caracter in ALFABETO:
+            indice = ALFABETO.index(caracter)
+
+            if direccion == "izquierda":
+                nuevo_indice = (indice - clave_descifrado) % len(ALFABETO)
+            elif direccion == "derecha":
+                nuevo_indice = (indice + clave_descifrado) % len(ALFABETO)
+            else:
+                return "Error: Dirección inválida. Usa 'izquierda' o 'derecha'."
+
+            texto_plano += ALFABETO[nuevo_indice]
         else:
-            indice_letra_cifrada = ALFABETO.index(letra)
-            indice_letra_descifrada = (indice_letra_cifrada + clave_descifrado) % len(ALFABETO)
-            texto_plano += ALFABETO[indice_letra_descifrada]
+            texto_plano += caracter  # Mantiene espacios y caracteres especiales
 
     return texto_plano
 
 @app.post("/descifrar")
-def descifrar_texto(request: DescifradoRequest):
-    texto_descifrado = algoritmo_descifrado(request.texto_cifrado, request.clave_descifrado, request.direccion)
-    return {"texto_plano": texto_descifrado}
+async def descifrar(request: CifradoRequest):
+    resultado = algoritmo_descifrado(request.texto_cifrado, request.clave_descifrado, request.direccion)
+    return {"texto_plano": resultado}
+
+# Configuración para Render: Usar el puerto asignado dinámicamente
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
