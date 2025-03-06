@@ -35,6 +35,12 @@ def algoritmo_descifrado(texto_cifrado: str, clave_descifrado: int, direccion: s
 
     return texto_plano
 
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello from Render"}
+
+
 @app.post("/descifrar")
 async def descifrar(request: CifradoRequest):
     resultado = algoritmo_descifrado(request.texto_cifrado, request.clave_descifrado, request.direccion)
